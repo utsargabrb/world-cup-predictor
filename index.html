@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIFA World Cup 2026 Predictor</title>
+  <meta name="description" content="Predict every match of the FIFA World Cup 2026. Calculate group standings, select qualifiers, and simulate the knockout stage all the way to the final.">
+  
+  <!-- Premium Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- App JS -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <!-- Stadium Pitch background markings -->
+  <div class="pitch-bg">
+    <div class="pitch-center-circle"></div>
+    <div class="pitch-half-line"></div>
+    <div class="pitch-penalty-area-left"></div>
+    <div class="pitch-penalty-area-right"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header glass-panel">
+      <div class="header-logo-section">
+        <div class="trophy-icon">🏆</div>
+        <div>
+          <h1>FIFA WORLD CUP 2026</h1>
+          <p class="subtitle">TOURNAMENT PREDICTOR</p>
+        </div>
+      </div>
+
+      <!-- Live Progress Tracker -->
+      <div class="progress-container">
+        <div class="progress-bar-bg">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+        <span id="progress-text" class="progress-text">0% Complete (0/104 matches predicted)</span>
+      </div>
+
+      <!-- Search Section -->
+      <div class="search-bar">
+        <input type="text" id="team-search-input" placeholder="Search team... (e.g. Brazil)">
+        <span class="search-icon">🔍</span>
+      </div>
+    </header>
+
+    <!-- Navigation & Action Toolbar -->
+    <div class="toolbar glass-panel">
+      <div class="tab-controls">
+        <button id="tab-groups-btn" class="tab-btn active">
+          <span class="tab-icon">📋</span> Group Stage
+        </button>
+        <button id="tab-bracket-btn" class="tab-btn">
+          <span class="tab-icon">🌳</span> Knockout Bracket
+        </button>
+      </div>
+
+      <div class="action-buttons">
+        <button id="btn-export" class="action-btn btn-secondary" title="Export your predictions as a JSON string">
+          <span>📤</span> Export
+        </button>
+        <button id="btn-import" class="action-btn btn-secondary" title="Import predictions from a saved JSON string">
+          <span>📥</span> Import
+        </button>
+        <button id="btn-reset" class="action-btn btn-danger" title="Clear all group stage and bracket predictions">
+          <span>🔄</span> Reset Tournament
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- 1. GROUP STAGE SECTION -->
+      <section id="tab-groups-section" class="tab-content">
+        <!-- Group Letters Filter -->
+        <div class="filter-wrapper glass-panel">
+          <span class="filter-label">Select Group:</span>
+          <div id="group-filters-container" class="group-filters-container">
+            <!-- Dynamically populated filter buttons A-L + ALL -->
+          </div>
+        </div>
+
+        <!-- Group Cards Grid -->
+        <div id="group-stage-container" class="groups-grid">
+          <!-- Dynamically populated group stage cards and tables -->
+        </div>
+
+        <!-- Knockout Qualification Summary -->
+        <div id="qualification-summary-container" class="qualification-summary glass-panel">
+          <div class="summary-header">
+            <h3>Knockout Qualification Standings (3rd Place Teams)</h3>
+            <p class="summary-subtitle">The top 8 third-place teams qualify for the Round of 32 along with all 1st & 2nd place teams.</p>
+          </div>
+          <div class="summary-body table-responsive">
+            <table class="standings-table thirds-table">
+              <thead>
+                <tr>
+                  <th class="col-pos">Rank</th>
+                  <th class="col-team">Team (Group)</th>
+                  <th class="col-stat">P</th>
+                  <th class="col-stat">W</th>
+                  <th class="col-stat">D</th>
+                  <th class="col-stat">L</th>
+                  <th class="col-pts">PTS</th>
+                  <th class="col-stat text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="thirds-table-body">
+                <!-- Dynamically populated ranked 3rd-place list -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. KNOCKOUT BRACKET SECTION -->
+      <section id="tab-bracket-section" class="tab-content hidden">
+        <div class="bracket-instructions glass-panel">
+          <p>👉 <strong>How to predict:</strong> Click on your predicted winner in each match card to advance them to the next round.</p>
+        </div>
+        
+        <div class="bracket-outer-container">
+          <div class="bracket-viewport">
+            
+            <!-- Round of 32 -->
+            <div class="bracket-round-column">
+              <h2 class="round-title">Round of 32</h2>
+              <div id="round-32-column" class="matches-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Round of 16 -->
+            <div class="bracket-round-column">
+              <h2 class="round-title">Round of 16</h2>
+              <div id="round-16-column" class="matches-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Quarter Finals -->
+            <div class="bracket-round-column">
+              <h2 class="round-title">Quarter-finals</h2>
+              <div id="round-qf-column" class="matches-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Semi Finals -->
+            <div class="bracket-round-column">
+              <h2 class="round-title">Semi-finals</h2>
+              <div id="round-sf-column" class="matches-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Finals / Third Place -->
+            <div class="bracket-round-column">
+              <h2 class="round-title">Finals</h2>
+              <div id="round-finals-column" class="matches-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+      
+    </main>
+    
+    <!-- Footer -->
+    <footer class="app-footer glass-panel">
+      <p>&copy; 2026 FIFA World Cup Predictor. Powered by Vanilla JavaScript. No rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- IMPORT / EXPORT MODAL -->
+  <div id="import-export-modal" class="modal-overlay">
+    <div class="modal-container glass-panel">
+      <div class="modal-header">
+        <h3 id="modal-title">Export Predictions</h3>
+        <button class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="import-export-textarea" rows="12" placeholder="Predictions JSON data..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn btn-secondary close-modal-btn">Close</button>
+        <button id="btn-submit-import" class="action-btn btn-primary">Import Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAMPION CELEBRATION OVERLAY -->
+  <div id="champion-overlay" class="celebration-overlay">
+    <canvas id="celebration-confetti-canvas" class="confetti-canvas"></canvas>
+    
+    <div class="celebration-card glass-panel">
+      <div class="star-burst"></div>
+      <div class="celebration-trophy">🏆</div>
+      <h2 class="celebration-title">World Cup Champion!</h2>
+      <div class="celebration-winner-badge">
+        <img id="celebration-flag" class="celebration-flag" src="" alt="Champion Flag">
+        <h3 id="celebration-team-name" class="celebration-team-name">TBD</h3>
+      </div>
+      <p class="celebration-text">Congratulations! You have completed your tournament prediction.</p>
+      <button id="btn-close-celebration" class="action-btn btn-primary celebration-close-btn">View My Bracket</button>
+    </div>
+  </div>
+</body>
+</html>
