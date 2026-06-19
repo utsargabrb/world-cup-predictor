@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIFA World Cup 2026 Predictor</title>
-  <meta name="description" content="Predict every match of the FIFA World Cup 2026. Calculate group standings, select qualifiers, and simulate the knockout stage all the way to the final.">
-  
+  <meta name="description"
+    content="Predict every match of the FIFA World Cup 2026. Calculate group standings, select qualifiers, and simulate the knockout stage all the way to the final.">
+
   <!-- Premium Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
-  
+
   <!-- App JS -->
   <script src="app.js" defer></script>
 </head>
+
 <body>
   <!-- Stadium Pitch background markings -->
   <div class="pitch-bg">
@@ -42,7 +46,11 @@
         <div class="progress-bar-bg">
           <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
         </div>
-        <span id="progress-text" class="progress-text">0% Complete (0/104 matches predicted)</span>
+        <div class="stats-row">
+          <span id="progress-text" class="progress-text">0% Complete (0/104 matches predicted)</span>
+          <span id="accuracy-text" class="accuracy-text hidden" title="Your prediction accuracy against real results">🎯
+            Accuracy: -</span>
+        </div>
       </div>
 
       <!-- Search Section -->
@@ -64,6 +72,12 @@
       </div>
 
       <div class="action-buttons">
+        <button id="btn-refresh-live" class="action-btn btn-primary" title="Fetch live scores from API">
+          <span>🔄</span> Live Scores
+        </button>
+        <button id="btn-api-settings" class="action-btn btn-secondary" title="Configure Live Score API">
+          <span>⚙️</span> API Settings
+        </button>
         <button id="btn-export" class="action-btn btn-secondary" title="Export your predictions as a JSON string">
           <span>📤</span> Export
         </button>
@@ -71,14 +85,14 @@
           <span>📥</span> Import
         </button>
         <button id="btn-reset" class="action-btn btn-danger" title="Clear all group stage and bracket predictions">
-          <span>🔄</span> Reset Tournament
+          <span>🗑️</span> Reset
         </button>
       </div>
     </div>
 
     <!-- Main Content Area -->
     <main class="main-content">
-      
+
       <!-- 1. GROUP STAGE SECTION -->
       <section id="tab-groups-section" class="tab-content">
         <!-- Group Letters Filter -->
@@ -98,7 +112,8 @@
         <div id="qualification-summary-container" class="qualification-summary glass-panel">
           <div class="summary-header">
             <h3>Knockout Qualification Standings (3rd Place Teams)</h3>
-            <p class="summary-subtitle">The top 8 third-place teams qualify for the Round of 32 along with all 1st & 2nd place teams.</p>
+            <p class="summary-subtitle">The top 8 third-place teams qualify for the Round of 32 along with all 1st & 2nd
+              place teams.</p>
           </div>
           <div class="summary-body table-responsive">
             <table class="standings-table thirds-table">
@@ -125,12 +140,13 @@
       <!-- 2. KNOCKOUT BRACKET SECTION -->
       <section id="tab-bracket-section" class="tab-content hidden">
         <div class="bracket-instructions glass-panel">
-          <p>👉 <strong>How to predict:</strong> Click on your predicted winner in each match card to advance them to the next round.</p>
+          <p>👉 <strong>How to predict:</strong> Click on your predicted winner in each match card to advance them to
+            the next round.</p>
         </div>
-        
+
         <div class="bracket-outer-container">
           <div class="bracket-viewport">
-            
+
             <!-- Round of 32 -->
             <div class="bracket-round-column">
               <h2 class="round-title">Round of 32</h2>
@@ -138,7 +154,7 @@
                 <!-- Dynamically populated -->
               </div>
             </div>
-            
+
             <!-- Round of 16 -->
             <div class="bracket-round-column">
               <h2 class="round-title">Round of 16</h2>
@@ -146,7 +162,7 @@
                 <!-- Dynamically populated -->
               </div>
             </div>
-            
+
             <!-- Quarter Finals -->
             <div class="bracket-round-column">
               <h2 class="round-title">Quarter-finals</h2>
@@ -154,7 +170,7 @@
                 <!-- Dynamically populated -->
               </div>
             </div>
-            
+
             <!-- Semi Finals -->
             <div class="bracket-round-column">
               <h2 class="round-title">Semi-finals</h2>
@@ -162,7 +178,7 @@
                 <!-- Dynamically populated -->
               </div>
             </div>
-            
+
             <!-- Finals / Third Place -->
             <div class="bracket-round-column">
               <h2 class="round-title">Finals</h2>
@@ -170,13 +186,13 @@
                 <!-- Dynamically populated -->
               </div>
             </div>
-            
+
           </div>
         </div>
       </section>
-      
+
     </main>
-    
+
     <!-- Footer -->
     <footer class="app-footer glass-panel">
       <p>&copy; 2026 FIFA World Cup Predictor. Powered by Vanilla JavaScript. No rights reserved.</p>
@@ -200,10 +216,33 @@
     </div>
   </div>
 
+  <!-- API SETTINGS MODAL -->
+  <div id="api-settings-modal" class="modal-overlay">
+    <div class="modal-container glass-panel">
+      <div class="modal-header">
+        <h3>Live Score API Settings</h3>
+        <button class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">Enable live fetching to pull real match results directly from the server. Finished matches will be locked, overriding predictions in the standings.</p>
+        <div class="form-group toggle-group" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="api-enable-checkbox"
+            style="width: 18px; height: 18px; accent-color: var(--primary);">
+          <label style="font-size: 14px; font-weight: 600; cursor: pointer;" for="api-enable-checkbox">Enable Live
+            Fetching</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn btn-secondary close-modal-btn">Cancel</button>
+        <button id="btn-save-api" class="action-btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
   <!-- CHAMPION CELEBRATION OVERLAY -->
   <div id="champion-overlay" class="celebration-overlay">
     <canvas id="celebration-confetti-canvas" class="confetti-canvas"></canvas>
-    
+
     <div class="celebration-card glass-panel">
       <div class="star-burst"></div>
       <div class="celebration-trophy">🏆</div>
@@ -217,4 +256,5 @@
     </div>
   </div>
 </body>
+
 </html>

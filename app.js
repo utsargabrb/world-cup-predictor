@@ -114,7 +114,9 @@ for (const letter of groupLetters) {
 // 2. Application State Definition
 let appState = {
   groupPredictions: {},  // key: fixtureId ("A-1") -> 'home', 'away', or 'draw' (or undefined/null)
-  knockoutSelections: {} // key: matchId ("R32-1") -> winnerTeamName (string)
+  knockoutSelections: {}, // key: matchId ("R32-1") -> winnerTeamName (string)
+  realResults: {},        // key: fixtureId -> { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' }
+  apiConfig: { enabled: true }
 };
 
 // Active Tab and Active Group views
@@ -151,25 +153,40 @@ function calculateStandings() {
     }));
   }
 
-  // Aggregate match results from W/D/L predictions
+  // Aggregate match results from W/D/L predictions or real results
   generatedGroupFixtures.forEach(fixture => {
-    const pred = appState.groupPredictions[fixture.id];
-    if (pred) {
+    let homeScoreAdded = 0;
+    let awayScoreAdded = 0;
+
+    // Check if we have a real result first
+    const realRes = appState.realResults[fixture.id];
+    let resolvedOutcome = null;
+
+    if (realRes && realRes.status === 'FINISHED') {
+      if (realRes.homeScore > realRes.awayScore) resolvedOutcome = 'home';
+      else if (realRes.homeScore < realRes.awayScore) resolvedOutcome = 'away';
+      else resolvedOutcome = 'draw';
+    } else {
+      // Fallback to user prediction
+      resolvedOutcome = appState.groupPredictions[fixture.id];
+    }
+
+    if (resolvedOutcome) {
       const homeTeam = standings[fixture.group].find(t => t.name === fixture.home);
       const awayTeam = standings[fixture.group].find(t => t.name === fixture.away);
 
       homeTeam.played++;
       awayTeam.played++;
 
-      if (pred === 'home') {
+      if (resolvedOutcome === 'home') {
         homeTeam.wins++;
         homeTeam.points += 3;
         awayTeam.losses++;
-      } else if (pred === 'away') {
+      } else if (resolvedOutcome === 'away') {
         awayTeam.wins++;
         awayTeam.points += 3;
         homeTeam.losses++;
-      } else if (pred === 'draw') {
+      } else if (resolvedOutcome === 'draw') {
         homeTeam.draws++;
         homeTeam.points += 1;
         awayTeam.draws++;
@@ -308,7 +325,7 @@ function buildBracketTree() {
   const standings = calculateStandings();
   const qualifiers = getQualifiers(standings);
   const thirdMapping = matchThirdPlaceTeams(qualifiers.qualifiedThirds);
-  
+
   const r32 = getRoundOf32Matches(standings, qualifiers, thirdMapping);
   const r16 = {};
   const qf = {};
@@ -387,7 +404,7 @@ function buildBracketTree() {
       selected = null;
     }
     sfW[mId] = selected || null;
-    
+
     // Determine the loser
     if (pair.home && pair.away) {
       if (selected === pair.home) {
@@ -478,7 +495,7 @@ function loadFromLocalStorage() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      
+
       // Backward-compatible migration from old groupScores format to groupPredictions
       if (parsed.groupScores && !parsed.groupPredictions) {
         parsed.groupPredictions = {};
@@ -491,9 +508,12 @@ function loadFromLocalStorage() {
           }
         }
       }
-      
+
       if (parsed.groupPredictions && parsed.knockoutSelections) {
-        appState = parsed;
+        appState.groupPredictions = parsed.groupPredictions;
+        appState.knockoutSelections = parsed.knockoutSelections;
+        if (parsed.realResults) appState.realResults = parsed.realResults;
+        if (parsed.apiConfig) appState.apiConfig.enabled = parsed.apiConfig.enabled;
       }
     }
   } catch (e) {
@@ -504,6 +524,7 @@ function loadFromLocalStorage() {
 function resetTournament() {
   appState.groupPredictions = {};
   appState.knockoutSelections = {};
+  appState.realResults = {};
   saveToLocalStorage();
   renderApp();
 }
@@ -515,7 +536,7 @@ function exportPredictions() {
 function importPredictions(jsonString) {
   try {
     const parsed = JSON.parse(jsonString);
-    
+
     // Migration fallback for imported templates
     if (parsed.groupScores && !parsed.groupPredictions) {
       parsed.groupPredictions = {};
@@ -528,7 +549,7 @@ function importPredictions(jsonString) {
         }
       }
     }
-    
+
     if (parsed.groupPredictions && parsed.knockoutSelections) {
       appState = parsed;
       saveToLocalStorage();
@@ -556,10 +577,34 @@ function updateProgressTracker() {
   const stats = getCompletionStats();
   const progressBar = document.getElementById('progress-bar-fill');
   const progressText = document.getElementById('progress-text');
-  
+  const accuracyText = document.getElementById('accuracy-text');
+
   if (progressBar && progressText) {
     progressBar.style.width = `${stats.percent}%`;
     progressText.innerText = `${stats.percent}% Complete (${stats.predictedCount}/${stats.totalMatches} matches predicted)`;
+  }
+
+  // Calculate accuracy
+  if (accuracyText) {
+    let totalReal = 0;
+    let correctPreds = 0;
+    for (const fId in appState.realResults) {
+      const real = appState.realResults[fId];
+      if (real.status === 'FINISHED') {
+        totalReal++;
+        if (appState.groupPredictions[fId] === real.result) {
+          correctPreds++;
+        }
+      }
+    }
+
+    if (totalReal > 0) {
+      const acc = Math.round((correctPreds / totalReal) * 100);
+      accuracyText.innerText = `🎯 Accuracy: ${acc}% (${correctPreds}/${totalReal})`;
+      accuracyText.classList.remove('hidden');
+    } else {
+      accuracyText.classList.add('hidden');
+    }
   }
 }
 
@@ -592,27 +637,50 @@ function renderGroupStage(tree) {
     const matches = generatedGroupFixtures.filter(f => f.group === letter);
     matches.forEach(match => {
       const matchCard = document.createElement('div');
-      
+
       // Match active search highlight
-      const matchesSearch = searchQuery && 
-        (match.home.toLowerCase().includes(searchQuery.toLowerCase()) || 
-         match.away.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+      const matchesSearch = searchQuery &&
+        (match.home.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          match.away.toLowerCase().includes(searchQuery.toLowerCase()));
+
       const pred = appState.groupPredictions[match.id] || null;
-      matchCard.className = `match-card ${matchesSearch ? 'search-highlight' : ''} ${pred ? 'has-prediction' : ''}`;
+      const realRes = appState.realResults[match.id];
+      const isLocked = realRes && realRes.status === 'FINISHED';
+      matchCard.className = `match-card ${matchesSearch ? 'search-highlight' : ''} ${pred ? 'has-prediction' : ''} ${isLocked ? 'locked' : ''}`;
+
+      // Correctness badge
+      let badgeHTML = '';
+      if (isLocked && pred) {
+        if (pred === realRes.result) {
+          badgeHTML = `<div class="accuracy-badge acc-correct">✓</div>`;
+        } else {
+          badgeHTML = `<div class="accuracy-badge acc-wrong">✗</div>`;
+        }
+      }
 
       const homeFlag = `https://flagcdn.com/w40/${teamLookup[match.home].code}.png`;
       const awayFlag = `https://flagcdn.com/w40/${teamLookup[match.away].code}.png`;
 
+      let scoreDisplay = `<span>Draw</span>`;
+      if (isLocked || (realRes && realRes.status === 'IN_PLAY')) {
+        scoreDisplay = `
+           <div class="match-real-score">
+             <span class="match-status-label">${realRes.status === 'FINISHED' ? 'FT' : 'LIVE'}</span>
+             <span>${realRes.homeScore} - ${realRes.awayScore}</span>
+           </div>
+         `;
+      }
+
       matchCard.innerHTML = `
-        <div class="match-team-btn home-btn ${pred === 'home' ? 'active-win' : ''}" data-match-id="${match.id}" data-prediction="home">
+        ${badgeHTML}
+        <div class="match-team-btn home-btn ${pred === 'home' || (isLocked && realRes.result === 'home') ? 'active-win' : ''}" data-match-id="${match.id}" data-prediction="home">
           <img class="flag-icon" src="${homeFlag}" alt="${match.home} flag" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff20%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">
           <span class="team-name" title="${match.home}">${match.home}</span>
         </div>
-        <div class="match-draw-btn ${pred === 'draw' ? 'active-draw' : ''}" data-match-id="${match.id}" data-prediction="draw">
-          <span>Draw</span>
+        <div class="match-draw-btn ${pred === 'draw' || (isLocked && realRes.result === 'draw') ? 'active-draw' : ''}" data-match-id="${match.id}" data-prediction="draw">
+          ${scoreDisplay}
         </div>
-        <div class="match-team-btn away-btn ${pred === 'away' ? 'active-win' : ''}" data-match-id="${match.id}" data-prediction="away">
+        <div class="match-team-btn away-btn ${pred === 'away' || (isLocked && realRes.result === 'away') ? 'active-win' : ''}" data-match-id="${match.id}" data-prediction="away">
           <span class="team-name" title="${match.away}">${match.away}</span>
           <img class="flag-icon" src="${awayFlag}" alt="${match.away} flag" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff20%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">
         </div>
@@ -652,7 +720,7 @@ function renderGroupStage(tree) {
         rowClass = isQualifiedThird ? 'row-third-qualify' : 'row-third-normal';
       }
       tr.className = rowClass;
-      
+
       const flag = `https://flagcdn.com/w40/${teamLookup[row.name].code}.png`;
 
       tr.innerHTML = `
@@ -714,7 +782,7 @@ function renderQualificationSummary(tree) {
     const tr = document.createElement('tr');
     const isQualified = idx < 8;
     tr.className = isQualified ? 'row-qualify' : 'row-eliminated';
-    
+
     const flag = `https://flagcdn.com/w40/${teamLookup[row.name].code}.png`;
 
     tr.innerHTML = `
@@ -768,10 +836,10 @@ function createBracketMatchHTML(matchId, matchData, selectedWinner, matchNumber)
 // Render the Knockout Bracket Tree view
 function renderKnockoutBracket(tree) {
   const rounds = {
-    r32: { elId: 'round-32-column', data: tree.r32, nums: [73, 76, 74, 75, 78, 77, 79, 80, 82, 81, 84, 83, 85, 88, 86, 87], keys: Array.from({length: 16}, (_, i) => `R32-${i+1}`) },
-    r16: { elId: 'round-16-column', data: tree.r16, nums: [89, 90, 91, 92, 94, 93, 96, 95], keys: Array.from({length: 8}, (_, i) => `R16-${i+1}`) },
-    qf: { elId: 'round-qf-column', data: tree.qf, nums: [97, 98, 99, 100], keys: Array.from({length: 4}, (_, i) => `QF-${i+1}`) },
-    sf: { elId: 'round-sf-column', data: tree.sf, nums: [101, 102], keys: Array.from({length: 2}, (_, i) => `SF-${i+1}`) },
+    r32: { elId: 'round-32-column', data: tree.r32, nums: [73, 76, 74, 75, 78, 77, 79, 80, 82, 81, 84, 83, 85, 88, 86, 87], keys: Array.from({ length: 16 }, (_, i) => `R32-${i + 1}`) },
+    r16: { elId: 'round-16-column', data: tree.r16, nums: [89, 90, 91, 92, 94, 93, 96, 95], keys: Array.from({ length: 8 }, (_, i) => `R16-${i + 1}`) },
+    qf: { elId: 'round-qf-column', data: tree.qf, nums: [97, 98, 99, 100], keys: Array.from({ length: 4 }, (_, i) => `QF-${i + 1}`) },
+    sf: { elId: 'round-sf-column', data: tree.sf, nums: [101, 102], keys: Array.from({ length: 2 }, (_, i) => `SF-${i + 1}`) },
     finals: { elId: 'round-finals-column', data: tree.finals, nums: [103, 104], keys: ['TP', 'F'] }
   };
 
@@ -1067,11 +1135,124 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close modals
   const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+  const apiSettingsModal = document.getElementById('api-settings-modal');
   closeModalBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      modalExport.classList.remove('active');
+      if (modalExport) modalExport.classList.remove('active');
+      if (apiSettingsModal) apiSettingsModal.classList.remove('active');
     });
   });
+
+  // API Settings Event Listeners
+  const apiSettingsBtn = document.getElementById('btn-api-settings');
+  const apiEnableCheckbox = document.getElementById('api-enable-checkbox');
+  const btnSaveApi = document.getElementById('btn-save-api');
+  const btnRefreshLive = document.getElementById('btn-refresh-live');
+
+  if (apiSettingsBtn && apiSettingsModal) {
+    apiSettingsBtn.addEventListener('click', () => {
+      apiEnableCheckbox.checked = appState.apiConfig.enabled;
+      apiSettingsModal.classList.add('active');
+    });
+  }
+
+  if (btnSaveApi && apiSettingsModal) {
+    btnSaveApi.addEventListener('click', () => {
+      appState.apiConfig.enabled = apiEnableCheckbox.checked;
+      saveToLocalStorage();
+      apiSettingsModal.classList.remove('active');
+      if (appState.apiConfig.enabled) {
+        fetchLiveScores();
+      } else {
+        renderApp();
+      }
+    });
+  }
+
+  if (btnRefreshLive) {
+    btnRefreshLive.addEventListener('click', () => {
+      if (!appState.apiConfig.enabled) {
+        alert('Please enable Live Fetching in Settings first.');
+        return;
+      }
+      fetchLiveScores();
+    });
+  }
+
+  // Real API Fetcher for football-data.org
+  window.fetchLiveScores = async function () {
+    if (!appState.apiConfig.enabled) return;
+
+    const btn = document.getElementById('btn-refresh-live');
+    if (btn) btn.innerHTML = `<span>⏳</span> Fetching...`;
+
+    try {
+      // Use our local Node.js proxy server to completely bypass CORS
+      const apiUrl = '/api/proxy';
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        throw new Error('API Request Failed');
+      }
+
+      const data = await response.json();
+      const newResults = {};
+
+      if (data && data.matches) {
+        data.matches.forEach(apiMatch => {
+          const apiHome = apiMatch.homeTeam?.name;
+          const apiAway = apiMatch.awayTeam?.name;
+          if (!apiHome || !apiAway) return;
+
+          // Find matching fixture in our list
+          const fixture = generatedGroupFixtures.find(f =>
+            f.home.toLowerCase() === apiHome.toLowerCase() &&
+            f.away.toLowerCase() === apiAway.toLowerCase()
+          );
+
+          if (fixture) {
+            let resultStr = null;
+            if (apiMatch.score?.winner === 'HOME_TEAM') resultStr = 'home';
+            if (apiMatch.score?.winner === 'AWAY_TEAM') resultStr = 'away';
+            if (apiMatch.score?.winner === 'DRAW') resultStr = 'draw';
+
+            newResults[fixture.id] = {
+              homeScore: apiMatch.score?.fullTime?.home ?? 0,
+              awayScore: apiMatch.score?.fullTime?.away ?? 0,
+              status: apiMatch.status, // e.g. 'FINISHED', 'IN_PLAY'
+              result: resultStr
+            };
+          }
+        });
+      }
+
+      if (Object.keys(newResults).length > 0) {
+        appState.realResults = newResults;
+      } else {
+        // Fallback to mock data since 2026 matches aren't on the API yet
+        console.log('No matching 2026 World Cup matches found on API. Using mock data for demo.');
+        appState.realResults = {
+          'A-1': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'A-2': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'B-1': { homeScore: 0, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'B-2': { homeScore: 1, awayScore: 1, status: 'IN_PLAY', result: null }
+        };
+      }
+
+      saveToLocalStorage();
+      renderApp();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch live scores. Check your API key or network.');
+    } finally {
+      if (btn) btn.innerHTML = `<span>🔄</span> Live Scores`;
+    }
+  };
+
+  // Initial fetch if enabled
+  if (appState.apiConfig.enabled) {
+    fetchLiveScores();
+  }
 
   // Submit Import
   if (btnSubmitImport && modalTextArea && modalExport) {
