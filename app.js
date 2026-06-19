@@ -1199,9 +1199,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const newResults = {};
 
       if (data && data.matches) {
+        const apiTeamNameMap = {
+          "Bosnia-Herzegovina": "Bosnia and Herzegovina",
+          "Curaçao": "Curacao",
+          "Cura??ao": "Curacao",
+          "Cape Verde Islands": "Cape Verde",
+          "Congo DR": "DR Congo"
+        };
+
         data.matches.forEach(apiMatch => {
-          const apiHome = apiMatch.homeTeam?.name;
-          const apiAway = apiMatch.awayTeam?.name;
+          let apiHome = apiMatch.homeTeam?.name;
+          let apiAway = apiMatch.awayTeam?.name;
+
+          if (apiHome && apiTeamNameMap[apiHome]) apiHome = apiTeamNameMap[apiHome];
+          if (apiAway && apiTeamNameMap[apiAway]) apiAway = apiTeamNameMap[apiAway];
+
           if (!apiHome || !apiAway) return;
 
           // Find matching fixture in our list
