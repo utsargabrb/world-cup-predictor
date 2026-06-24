@@ -1216,21 +1216,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!apiHome || !apiAway) return;
 
-          // Find matching fixture in our list
+          // Find matching fixture in our list (allowing swapped home/away)
           const fixture = generatedGroupFixtures.find(f =>
-            f.home.toLowerCase() === apiHome.toLowerCase() &&
-            f.away.toLowerCase() === apiAway.toLowerCase()
+            (f.home.toLowerCase() === apiHome.toLowerCase() && f.away.toLowerCase() === apiAway.toLowerCase()) ||
+            (f.home.toLowerCase() === apiAway.toLowerCase() && f.away.toLowerCase() === apiHome.toLowerCase())
           );
 
           if (fixture) {
+            const isSwapped = fixture.home.toLowerCase() === apiAway.toLowerCase();
+            
             let resultStr = null;
-            if (apiMatch.score?.winner === 'HOME_TEAM') resultStr = 'home';
-            if (apiMatch.score?.winner === 'AWAY_TEAM') resultStr = 'away';
-            if (apiMatch.score?.winner === 'DRAW') resultStr = 'draw';
+            if (apiMatch.score?.winner === 'HOME_TEAM') {
+              resultStr = isSwapped ? 'away' : 'home';
+            } else if (apiMatch.score?.winner === 'AWAY_TEAM') {
+              resultStr = isSwapped ? 'home' : 'away';
+            } else if (apiMatch.score?.winner === 'DRAW') {
+              resultStr = 'draw';
+            }
 
             newResults[fixture.id] = {
-              homeScore: apiMatch.score?.fullTime?.home ?? 0,
-              awayScore: apiMatch.score?.fullTime?.away ?? 0,
+              homeScore: isSwapped ? (apiMatch.score?.fullTime?.away ?? 0) : (apiMatch.score?.fullTime?.home ?? 0),
+              awayScore: isSwapped ? (apiMatch.score?.fullTime?.home ?? 0) : (apiMatch.score?.fullTime?.away ?? 0),
               status: apiMatch.status, // e.g. 'FINISHED', 'IN_PLAY'
               result: resultStr
             };
