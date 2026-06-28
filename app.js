@@ -1243,17 +1243,143 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       }
-
       if (Object.keys(newResults).length > 0) {
         appState.realResults = newResults;
       } else {
-        // Fallback to mock data since 2026 matches aren't on the API yet
-        console.log('No matching 2026 World Cup matches found on API. Using mock data for demo.');
+        // Fallback: use the actual 2026 World Cup group stage results
+        console.log('No matching 2026 World Cup matches found on API. Using actual 2026 group stage results.');
         appState.realResults = {
-          'A-1': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
-          'A-2': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
-          'B-1': { homeScore: 0, awayScore: 3, status: 'FINISHED', result: 'away' },
-          'B-2': { homeScore: 1, awayScore: 1, status: 'IN_PLAY', result: null }
+          // ── GROUP A: Mexico(0), South Korea(1), South Africa(2), Czechia(3) ──
+          // A-1: Mexico vs South Korea | A-2: South Africa vs Czechia
+          // A-3: Mexico vs South Africa | A-4: South Korea vs Czechia
+          // A-5: Czechia vs Mexico     | A-6: South Korea vs South Africa
+          'A-1': { homeScore: 2, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'A-2': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'A-3': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'A-4': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'A-5': { homeScore: 0, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'A-6': { homeScore: 0, awayScore: 1, status: 'FINISHED', result: 'away' },
+
+          // ── GROUP B: Canada(0), Bosnia and Herzegovina(1), Qatar(2), Switzerland(3) ──
+          // B-1: Canada vs Bosnia | B-2: Qatar vs Switzerland
+          // B-3: Canada vs Qatar  | B-4: Bosnia vs Switzerland
+          // B-5: Switzerland vs Canada | B-6: Bosnia vs Qatar
+          'B-1': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'B-2': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'B-3': { homeScore: 6, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'B-4': { homeScore: 1, awayScore: 4, status: 'FINISHED', result: 'away' },
+          'B-5': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'B-6': { homeScore: 3, awayScore: 1, status: 'FINISHED', result: 'home' },
+
+          // ── GROUP C: Brazil(0), Morocco(1), Haiti(2), Scotland(3) ──
+          // C-1: Brazil vs Morocco | C-2: Haiti vs Scotland
+          // C-3: Brazil vs Haiti   | C-4: Morocco vs Scotland
+          // C-5: Scotland vs Brazil | C-6: Morocco vs Haiti
+          'C-1': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'C-2': { homeScore: 0, awayScore: 1, status: 'FINISHED', result: 'away' },
+          'C-3': { homeScore: 3, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'C-4': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'C-5': { homeScore: 0, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'C-6': { homeScore: 4, awayScore: 2, status: 'FINISHED', result: 'home' },
+
+          // ── GROUP D: United States(0), Paraguay(1), Australia(2), Turkey(3) ──
+          // D-1: USA vs Paraguay  | D-2: Australia vs Turkey
+          // D-3: USA vs Australia | D-4: Paraguay vs Turkey
+          // D-5: Turkey vs USA    | D-6: Paraguay vs Australia
+          'D-1': { homeScore: 4, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'D-2': { homeScore: 2, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'D-3': { homeScore: 2, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'D-4': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'D-5': { homeScore: 3, awayScore: 2, status: 'FINISHED', result: 'home' },
+          'D-6': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+
+          // ── GROUP E: Germany(0), Curacao(1), Ivory Coast(2), Ecuador(3) ──
+          // E-1: Germany vs Curacao | E-2: Ivory Coast vs Ecuador
+          // E-3: Germany vs Ivory Coast | E-4: Curacao vs Ecuador
+          // E-5: Ecuador vs Germany     | E-6: Curacao vs Ivory Coast
+          'E-1': { homeScore: 7, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'E-2': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'E-3': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'E-4': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'E-5': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'E-6': { homeScore: 0, awayScore: 2, status: 'FINISHED', result: 'away' },
+
+          // ── GROUP F: Netherlands(0), Japan(1), Sweden(2), Tunisia(3) ──
+          // F-1: Netherlands vs Japan | F-2: Sweden vs Tunisia
+          // F-3: Netherlands vs Sweden | F-4: Japan vs Tunisia
+          // F-5: Tunisia vs Netherlands | F-6: Japan vs Sweden
+          'F-1': { homeScore: 2, awayScore: 2, status: 'FINISHED', result: 'draw' },
+          'F-2': { homeScore: 5, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'F-3': { homeScore: 5, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'F-4': { homeScore: 4, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'F-5': { homeScore: 1, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'F-6': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+
+          // ── GROUP G: Belgium(0), Egypt(1), Iran(2), New Zealand(3) ──
+          // G-1: Belgium vs Egypt | G-2: Iran vs New Zealand
+          // G-3: Belgium vs Iran  | G-4: Egypt vs New Zealand
+          // G-5: New Zealand vs Belgium | G-6: Egypt vs Iran
+          'G-1': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'G-2': { homeScore: 2, awayScore: 2, status: 'FINISHED', result: 'draw' },
+          'G-3': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'G-4': { homeScore: 3, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'G-5': { homeScore: 1, awayScore: 5, status: 'FINISHED', result: 'away' },
+          'G-6': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+
+          // ── GROUP H: Spain(0), Cape Verde(1), Saudi Arabia(2), Uruguay(3) ──
+          // H-1: Spain vs Cape Verde | H-2: Saudi Arabia vs Uruguay
+          // H-3: Spain vs Saudi Arabia | H-4: Cape Verde vs Uruguay
+          // H-5: Uruguay vs Spain      | H-6: Cape Verde vs Saudi Arabia
+          'H-1': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'H-2': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'H-3': { homeScore: 4, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'H-4': { homeScore: 2, awayScore: 2, status: 'FINISHED', result: 'draw' },
+          'H-5': { homeScore: 0, awayScore: 1, status: 'FINISHED', result: 'away' },
+          'H-6': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+
+          // ── GROUP I: France(0), Senegal(1), Iraq(2), Norway(3) ──
+          // I-1: France vs Senegal | I-2: Iraq vs Norway
+          // I-3: France vs Iraq    | I-4: Senegal vs Norway
+          // I-5: Norway vs France  | I-6: Senegal vs Iraq
+          'I-1': { homeScore: 3, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'I-2': { homeScore: 1, awayScore: 4, status: 'FINISHED', result: 'away' },
+          'I-3': { homeScore: 3, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'I-4': { homeScore: 2, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'I-5': { homeScore: 1, awayScore: 4, status: 'FINISHED', result: 'away' },
+          'I-6': { homeScore: 5, awayScore: 0, status: 'FINISHED', result: 'home' },
+
+          // ── GROUP J: Argentina(0), Algeria(1), Austria(2), Jordan(3) ──
+          // J-1: Argentina vs Algeria | J-2: Austria vs Jordan
+          // J-3: Argentina vs Austria | J-4: Algeria vs Jordan
+          // J-5: Jordan vs Argentina  | J-6: Algeria vs Austria
+          'J-1': { homeScore: 3, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'J-2': { homeScore: 3, awayScore: 1, status: 'FINISHED', result: 'home' },
+          'J-3': { homeScore: 2, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'J-4': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'J-5': { homeScore: 1, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'J-6': { homeScore: 3, awayScore: 3, status: 'FINISHED', result: 'draw' },
+
+          // ── GROUP K: Portugal(0), DR Congo(1), Uzbekistan(2), Colombia(3) ──
+          // K-1: Portugal vs DR Congo | K-2: Uzbekistan vs Colombia
+          // K-3: Portugal vs Uzbekistan | K-4: DR Congo vs Colombia
+          // K-5: Colombia vs Portugal   | K-6: DR Congo vs Uzbekistan
+          'K-1': { homeScore: 1, awayScore: 1, status: 'FINISHED', result: 'draw' },
+          'K-2': { homeScore: 1, awayScore: 3, status: 'FINISHED', result: 'away' },
+          'K-3': { homeScore: 5, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'K-4': { homeScore: 0, awayScore: 1, status: 'FINISHED', result: 'away' },
+          'K-5': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'K-6': { homeScore: 3, awayScore: 1, status: 'FINISHED', result: 'home' },
+
+          // ── GROUP L: England(0), Croatia(1), Ghana(2), Panama(3) ──
+          // L-1: England vs Croatia | L-2: Ghana vs Panama
+          // L-3: England vs Ghana   | L-4: Croatia vs Panama
+          // L-5: Panama vs England  | L-6: Croatia vs Ghana
+          'L-1': { homeScore: 4, awayScore: 2, status: 'FINISHED', result: 'home' },
+          'L-2': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'L-3': { homeScore: 0, awayScore: 0, status: 'FINISHED', result: 'draw' },
+          'L-4': { homeScore: 1, awayScore: 0, status: 'FINISHED', result: 'home' },
+          'L-5': { homeScore: 0, awayScore: 2, status: 'FINISHED', result: 'away' },
+          'L-6': { homeScore: 2, awayScore: 1, status: 'FINISHED', result: 'home' },
         };
       }
 
