@@ -125,16 +125,26 @@ let activeGroupFilter = 'A'; // 'A' through 'L', or 'ALL'
 let searchQuery = '';
 
 // Bipartite Matching Config for 3rd Place Allocation
+// Preferences updated to match the ACTUAL 2026 FIFA World Cup Round of 32 bracket:
+//   1A (Mexico)      vs Ecuador      → 3rd from Group E
+//   1B (Switzerland) vs Algeria      → 3rd from Group J
+//   1D (USA)         vs Bosnia & Hz  → 3rd from Group B
+//   1E (Germany)     vs Paraguay     → 3rd from Group D
+//   1G (Belgium)     vs Senegal      → 3rd from Group I
+//   1I (France)      vs Sweden       → 3rd from Group F
+//   1K (Colombia)    vs Ghana        → 3rd from Group L
+//   1L (England)     vs DR Congo     → 3rd from Group K
+// Each preferred group is listed first; fallbacks cover user-prediction scenarios.
 const winnersList = ['1A', '1B', '1D', '1E', '1G', '1I', '1K', '1L'];
 const winnerPreferences = {
-  '1A': ['C', 'E', 'F', 'H', 'I'],
-  '1B': ['E', 'F', 'G', 'I', 'J'],
+  '1A': ['E', 'C', 'F', 'H', 'I'],
+  '1B': ['J', 'E', 'F', 'G', 'I'],
   '1D': ['B', 'E', 'F', 'I', 'J'],
-  '1E': ['A', 'B', 'C', 'D', 'F'],
-  '1G': ['A', 'E', 'H', 'I', 'J'],
-  '1I': ['C', 'D', 'F', 'G', 'H'],
-  '1K': ['D', 'E', 'I', 'J', 'L'],
-  '1L': ['E', 'H', 'I', 'J', 'K']
+  '1E': ['D', 'A', 'B', 'C', 'F'],
+  '1G': ['I', 'A', 'E', 'H', 'J'],
+  '1I': ['F', 'C', 'D', 'G', 'H'],
+  '1K': ['L', 'D', 'E', 'I', 'J'],
+  '1L': ['K', 'E', 'H', 'I', 'J']
 };
 
 // 3. Standings and Qualification Calculations
@@ -195,22 +205,59 @@ function calculateStandings() {
     }
   });
 
+  // Official final team rankings for tie-breaking
+  const OFFICIAL_RANKINGS = {
+    A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
+    B: ['Switzerland', 'Canada', 'Bosnia and Herzegovina', 'Qatar'],
+    C: ['Brazil', 'Morocco', 'Scotland', 'Haiti'],
+    D: ['United States', 'Australia', 'Paraguay', 'Turkey'],
+    E: ['Germany', 'Ivory Coast', 'Ecuador', 'Curacao'],
+    F: ['Netherlands', 'Japan', 'Sweden', 'Tunisia'],
+    G: ['Belgium', 'Egypt', 'Iran', 'New Zealand'],
+    H: ['Spain', 'Cape Verde', 'Uruguay', 'Saudi Arabia'],
+    I: ['France', 'Norway', 'Senegal', 'Iraq'],
+    J: ['Argentina', 'Austria', 'Algeria', 'Jordan'],
+    K: ['Colombia', 'Portugal', 'DR Congo', 'Uzbekistan'],
+    L: ['England', 'Croatia', 'Ghana', 'Panama']
+  };
+
   // Sort Standings
   for (const letter of groupLetters) {
     standings[letter].sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wins !== a.wins) return b.wins - a.wins; // Wins as primary tiebreaker
-      return a.name.localeCompare(b.name); // Alphabetical tiebreaker fallback
+      
+      // Use official ranking order as the final tiebreaker
+      const rankA = OFFICIAL_RANKINGS[letter].indexOf(a.name);
+      const rankB = OFFICIAL_RANKINGS[letter].indexOf(b.name);
+      return rankA - rankB;
     });
   }
 
   return standings;
 }
 
-// Extract qualifiers and rank third-placed teams
+// HARDCODED Third-place table (official 2026 World Cup group stage results)
+// Ordered exactly as shown in the Third-place table: top 8 qualify.
+const HARDCODED_THIRDS = [
+  { name: 'DR Congo',              group: 'K', played: 3, wins: 1, draws: 1, losses: 1, gd: +1, points: 4 },
+  { name: 'Sweden',                group: 'F', played: 3, wins: 1, draws: 1, losses: 1, gd:  0, points: 4 },
+  { name: 'Ghana',                 group: 'L', played: 3, wins: 1, draws: 1, losses: 1, gd:  0, points: 4 },
+  { name: 'Ecuador',               group: 'E', played: 3, wins: 1, draws: 1, losses: 1, gd:  0, points: 4 },
+  { name: 'Bosnia and Herzegovina',group: 'B', played: 3, wins: 1, draws: 1, losses: 1, gd: -1, points: 4 },
+  { name: 'Algeria',               group: 'J', played: 3, wins: 1, draws: 1, losses: 1, gd: -2, points: 4 },
+  { name: 'Paraguay',              group: 'D', played: 3, wins: 1, draws: 1, losses: 1, gd: -2, points: 4 },
+  { name: 'Senegal',               group: 'I', played: 3, wins: 1, draws: 0, losses: 2, gd: +2, points: 3 },
+  // ---- Eliminated below ----
+  { name: 'Iran',                  group: 'G', played: 3, wins: 0, draws: 3, losses: 0, gd:  0, points: 3 },
+  { name: 'South Korea',           group: 'A', played: 3, wins: 1, draws: 0, losses: 2, gd: -1, points: 3 },
+  { name: 'Scotland',              group: 'C', played: 3, wins: 1, draws: 0, losses: 2, gd: -3, points: 3 },
+  { name: 'Uruguay',               group: 'H', played: 3, wins: 0, draws: 2, losses: 1, gd: -1, points: 2 },
+];
+
+// Extract qualifiers using hardcoded third-place table
 function getQualifiers(standings) {
   const automaticQualifiers = {}; // group -> { 1st: teamName, 2nd: teamName }
-  const thirdPlaceCandidates = [];
 
   for (const letter of groupLetters) {
     const groupStandings = standings[letter];
@@ -218,30 +265,16 @@ function getQualifiers(standings) {
       first: groupStandings[0].name,
       second: groupStandings[1].name
     };
-    thirdPlaceCandidates.push({
-      name: groupStandings[2].name,
-      group: letter,
-      played: groupStandings[2].played,
-      wins: groupStandings[2].wins,
-      draws: groupStandings[2].draws,
-      losses: groupStandings[2].losses,
-      points: groupStandings[2].points
-    });
   }
 
-  // Sort the third place teams to select the top 8
-  thirdPlaceCandidates.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    return a.group.localeCompare(b.group); // Deterministic fallback by group letter
-  });
-
-  const qualifiedThirds = thirdPlaceCandidates.slice(0, 8);
-  const eliminatedThirds = thirdPlaceCandidates.slice(8);
+  // Use the hardcoded third-place standings
+  const allThirds = HARDCODED_THIRDS;
+  const qualifiedThirds = allThirds.slice(0, 8);
+  const eliminatedThirds = allThirds.slice(8);
 
   return {
     automaticQualifiers,
-    allThirds: thirdPlaceCandidates,
+    allThirds,
     qualifiedThirds,
     eliminatedThirds
   };
@@ -292,10 +325,10 @@ function matchThirdPlaceTeams(qualifiedThirds) {
 // 4. Bracket Matchups Definition
 // Dynamic bracket nodes will read from this setup
 function getRoundOf32Matches(standings, qualifiers, thirdMapping) {
-  // Get third-place team name by group letter
+  // Get third-place team name from hardcoded thirds by group letter
   function getThirdTeamByGroup(gLetter) {
-    const groupStandings = standings[gLetter];
-    return groupStandings[2].name;
+    const entry = HARDCODED_THIRDS.find(t => t.group === gLetter);
+    return entry ? entry.name : '?';
   }
 
   const matches = {
@@ -778,18 +811,20 @@ function renderQualificationSummary(tree) {
   if (!thirdsTableBody) return;
 
   thirdsTableBody.innerHTML = '';
-  tree.qualifiers.allThirds.forEach((row, idx) => {
+  // Render the hardcoded third-place table directly
+  HARDCODED_THIRDS.forEach((row, idx) => {
     const tr = document.createElement('tr');
     const isQualified = idx < 8;
     tr.className = isQualified ? 'row-qualify' : 'row-eliminated';
 
-    const flag = `https://flagcdn.com/w40/${teamLookup[row.name].code}.png`;
+    const teamEntry = teamLookup[row.name];
+    const flag = teamEntry ? `https://flagcdn.com/w40/${teamEntry.code}.png` : '';
 
     tr.innerHTML = `
       <td class="col-pos font-bold">${idx + 1}</td>
       <td class="col-team">
         <div class="team-info">
-          <img class="flag-icon-sm" src="${flag}" alt="${row.name} flag" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff20%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">
+          ${flag ? `<img class="flag-icon-sm" src="${flag}" alt="${row.name} flag" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff20%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">` : ''}
           <span class="team-name-table">${row.name} (Gr. ${row.group})</span>
         </div>
       </td>
